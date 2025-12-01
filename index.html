@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiztastic</title>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+
+<body>
+  <div class="game-container">
+    <div id="menu-screen" class="screen">
+      <h1>Quiztastic</h1>
+      <p>Speel online met vrienden!</p>
+      <div class="category-preview">
+        <span class="cat-badge dieren">Dieren</span>
+        <span class="cat-badge pubquiz">Pub Quiz</span>
+        <span class="cat-badge sneldenken">Snel Denken</span>
+        <span class="cat-badge terugnaardeschool">School</span>
+        <span class="cat-badge logoquiz">Logo Quiz</span>
+        <span class="cat-badge videogame">Video Game</span>
+      </div>
+      
+      <div class="menu-buttons">
+        <button id="create-btn" class="btn btn-large">Nieuw Spel Maken</button>
+        <button id="join-btn" class="btn btn-large btn-secondary">Deelnemen met PIN</button>
+        <button id="local-btn" class="btn btn-large btn-tertiary">Lokaal Spelen (1 apparaat)</button>
+      </div>
+    </div>
+
+    <div id="create-screen" class="screen hidden">
+      <h1>Nieuw Spel Maken</h1>
+      <div class="input-group">
+        <label>Jouw naam:</label>
+        <input type="text" id="host-name" placeholder="Voer je naam in" class="player-input" />
+      </div>
+      
+      <h3>Kies jouw genie:</h3>
+      <div class="genius-grid-small" id="create-genius-grid">
+        <div class="genius-card-small" data-genius="einstein">
+          <div class="genius-avatar-small einstein-avatar">🧠</div>
+          <div class="genius-name-small">Einstein</div>
+        </div>
+        <div class="genius-card-small" data-genius="curie">
+          <div class="genius-avatar-small curie-avatar">⚗️</div>
+          <div class="genius-name-small">Curie</div>
+        </div>
+        <div class="genius-card-small" data-genius="davinci">
+          <div class="genius-avatar-small davinci-avatar">🎨</div>
+          <div class="genius-name-small">Da Vinci</div>
+        </div>
+        <div class="genius-card-small" data-genius="newton">
+          <div class="genius-avatar-small newton-avatar">🍎</div>
+          <div class="genius-name-small">Newton</div>
+        </div>
+        <div class="genius-card-small" data-genius="tesla">
+          <div class="genius-avatar-small tesla-avatar">⚡</div>
+          <div class="genius-name-small">Tesla</div>
+        </div>
+        <div class="genius-card-small" data-genius="darwin">
+          <div class="genius-avatar-small darwin-avatar">🦎</div>
+          <div class="genius-name-small">Darwin</div>
+        </div>
+      </div>
+      
+      <button id="create-game-btn" class="btn">Maak Spel</button>
+      <button class="btn btn-back" onclick="showScreen('menu-screen')">Terug</button>
+    </div>
+
+    <div id="join-screen" class="screen hidden">
+      <h1>Deelnemen aan Spel</h1>
+      <div class="input-group">
+        <label>Jouw naam:</label>
+        <input type="text" id="join-name" placeholder="Voer je naam in" class="player-input" />
+      </div>
+      <div class="input-group">
+        <label>Spel PIN:</label>
+        <input type="text" id="game-pin" placeholder="123456" class="player-input pin-input" maxlength="6" />
+      </div>
+      
+      <h3>Kies jouw genie:</h3>
+      <div class="genius-grid-small" id="join-genius-grid">
+        <div class="genius-card-small" data-genius="einstein">
+          <div class="genius-avatar-small einstein-avatar">🧠</div>
+          <div class="genius-name-small">Einstein</div>
+        </div>
+        <div class="genius-card-small" data-genius="curie">
+          <div class="genius-avatar-small curie-avatar">⚗️</div>
+          <div class="genius-name-small">Curie</div>
+        </div>
+        <div class="genius-card-small" data-genius="davinci">
+          <div class="genius-avatar-small davinci-avatar">🎨</div>
+          <div class="genius-name-small">Da Vinci</div>
+        </div>
+        <div class="genius-card-small" data-genius="newton">
+          <div class="genius-avatar-small newton-avatar">🍎</div>
+          <div class="genius-name-small">Newton</div>
+        </div>
+        <div class="genius-card-small" data-genius="tesla">
+          <div class="genius-avatar-small tesla-avatar">⚡</div>
+          <div class="genius-name-small">Tesla</div>
+        </div>
+        <div class="genius-card-small" data-genius="darwin">
+          <div class="genius-avatar-small darwin-avatar">🦎</div>
+          <div class="genius-name-small">Darwin</div>
+        </div>
+      </div>
+      
+      <button id="join-game-btn" class="btn">Deelnemen</button>
+      <button class="btn btn-back" onclick="showScreen('menu-screen')">Terug</button>
+      <div id="join-error" class="error-message hidden"></div>
+    </div>
+
+    <div id="lobby-screen" class="screen hidden">
+      <h1>Wachtkamer</h1>
+      <div class="pin-display">
+        <span>Spel PIN:</span>
+        <div id="lobby-pin" class="pin-code"></div>
+        <p class="pin-hint">Deel deze code met je vrienden!</p>
+      </div>
+      <div class="lobby-players">
+        <h3>Spelers (<span id="player-count">0</span>/4)</h3>
+        <div id="lobby-player-list"></div>
+      </div>
+      <button id="start-online-btn" class="btn hidden">Start Spel</button>
+      <p id="waiting-message" class="waiting-text">Wachten op de host om te starten...</p>
+    </div>
+
+    <div id="local-screen" class="screen hidden">
+      <h1>Lokaal Spelen</h1>
+      <p>Alle spelers op dit apparaat</p>
+      <div class="player-setup">
+        <h3>Spelers (1-4)</h3>
+        <div class="player-inputs">
+          <input type="text" id="player1" placeholder="Speler 1" class="player-input" />
+          <input type="text" id="player2" placeholder="Speler 2 (optioneel)" class="player-input" />
+          <input type="text" id="player3" placeholder="Speler 3 (optioneel)" class="player-input" />
+          <input type="text" id="player4" placeholder="Speler 4 (optioneel)" class="player-input" />
+        </div>
+      </div>
+      <button id="to-pion-select-btn" class="btn">Kies Pionnen</button>
+      <button class="btn btn-back" onclick="showScreen('menu-screen')">Terug</button>
+    </div>
+
+    <div id="pion-select-screen" class="screen hidden">
+      <h1>Kies Je Pion</h1>
+      <p>Selecteer een genie als jouw speelpion</p>
+      
+      <div id="pion-selection-container">
+        <div class="current-player-select">
+          <span id="selecting-player-name">Speler 1</span> kiest een pion:
+        </div>
+        
+        <div class="genius-grid">
+          <div class="genius-card" data-genius="einstein">
+            <div class="genius-avatar einstein-avatar">🧠</div>
+            <div class="genius-name">Albert Einstein</div>
+            <div class="genius-field">Natuurkunde</div>
+          </div>
+          <div class="genius-card" data-genius="curie">
+            <div class="genius-avatar curie-avatar">⚗️</div>
+            <div class="genius-name">Marie Curie</div>
+            <div class="genius-field">Scheikunde</div>
+          </div>
+          <div class="genius-card" data-genius="davinci">
+            <div class="genius-avatar davinci-avatar">🎨</div>
+            <div class="genius-name">Leonardo da Vinci</div>
+            <div class="genius-field">Kunst & Wetenschap</div>
+          </div>
+          <div class="genius-card" data-genius="newton">
+            <div class="genius-avatar newton-avatar">🍎</div>
+            <div class="genius-name">Isaac Newton</div>
+            <div class="genius-field">Wiskunde</div>
+          </div>
+          <div class="genius-card" data-genius="tesla">
+            <div class="genius-avatar tesla-avatar">⚡</div>
+            <div class="genius-name">Nikola Tesla</div>
+            <div class="genius-field">Elektriciteit</div>
+          </div>
+          <div class="genius-card" data-genius="darwin">
+            <div class="genius-avatar darwin-avatar">🦎</div>
+            <div class="genius-name">Charles Darwin</div>
+            <div class="genius-field">Biologie</div>
+          </div>
+        </div>
+      </div>
+      
+      <button id="start-local-btn" class="btn hidden">Start Spel</button>
+      <button class="btn btn-back" onclick="showScreen('local-screen')">Terug</button>
+    </div>
+
+    <div id="game-screen" class="screen hidden">
+      <div class="game-header">
+        <div class="player-scores" id="player-scores"></div>
+        <div class="current-turn">
+          <span id="current-player">Speler 1</span> is aan de beurt
+        </div>
+        <div id="online-pin" class="online-pin hidden">PIN: <span id="game-pin-display"></span></div>
+      </div>
+      
+      <div class="game-area">
+        <div class="board-container">
+          <div id="game-board" class="game-board"></div>
+        </div>
+        
+        <div class="side-panel">
+          <div class="dice-area">
+            <div id="dice" class="dice">?</div>
+            <button id="roll-btn" class="btn roll-btn">Gooi Dobbelsteen</button>
+            <p id="not-your-turn" class="not-turn hidden">Wacht op je beurt...</p>
+          </div>
+          
+          <div class="legend">
+            <h4>Categorieën</h4>
+            <div class="legend-item"><span class="dot dieren"></span> Dieren</div>
+            <div class="legend-item"><span class="dot pubquiz"></span> Pub Quiz</div>
+            <div class="legend-item"><span class="dot sneldenken"></span> Snel Denken</div>
+            <div class="legend-item"><span class="dot terugnaardeschool"></span> School</div>
+            <div class="legend-item"><span class="dot logoquiz"></span> Logo Quiz</div>
+            <div class="legend-item"><span class="dot videogame"></span> Video Game</div>
+            <div class="legend-item"><span class="dot bonus"></span> Bonus!</div>
+            <div class="goal-info">Eerste met 10 punten wint!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="question-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="question-category" id="question-category">Zoogdieren</div>
+        <h2 id="modal-question"></h2>
+        <div id="modal-options" class="options"></div>
+        <div id="feedback" class="feedback hidden"></div>
+        <button id="continue-btn" class="btn hidden">Volgende Beurt</button>
+      </div>
+    </div>
+
+    <div id="winner-screen" class="screen hidden">
+      <h1>Gefeliciteerd!</h1>
+      <div id="winner-name" class="winner-name"></div>
+      <p>heeft 10 punten behaald en gewonnen!</p>
+      <div id="final-scores" class="final-scores"></div>
+      <button id="play-again-btn" class="btn">Opnieuw Spelen</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+
+</html>
